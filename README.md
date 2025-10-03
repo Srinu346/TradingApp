@@ -84,7 +84,3 @@ Feel free to check the issues page.
 
 Distributed under the MIT License. See LICENSE for more information.
 
-
-## 👉 This way, when you paste it into your repo’s `README.md`, it’ll look **structured, clean, and professional**.  
-
-Want me to also add **GitHub badges** (stars, forks, tech logos, license) at the very top to make it l
