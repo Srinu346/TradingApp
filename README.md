@@ -58,14 +58,14 @@ npx prisma migrate dev
 npm run dev
 ``` 
 
-🧩 Folder Structure
+## 🧩 Folder Structure
 ├── client/        # Frontend (React + Tailwind CSS)
 ├── server/        # Backend (Node.js + Express + Prisma)
 ├── prisma/        # Prisma schema & migrations
 ├── package.json
 ├── README.md
 
-🎯 Roadmap
+## 🎯 Roadmap
 
  Add stock selling feature
 
@@ -75,16 +75,16 @@ npm run dev
 
  Support multiple markets/sectors
 
-🤝 Contributing
+## 🤝 Contributing
 
 Contributions, issues, and feature requests are welcome!
 Feel free to check the issues page.
 
-📜 License
+## 📜 License
 
 Distributed under the MIT License. See LICENSE for more information.
 
 
-👉 This way, when you paste it into your repo’s `README.md`, it’ll look **structured, clean, and professional**.  
+## 👉 This way, when you paste it into your repo’s `README.md`, it’ll look **structured, clean, and professional**.  
 
 Want me to also add **GitHub badges** (stars, forks, tech logos, license) at the very top to make it l
