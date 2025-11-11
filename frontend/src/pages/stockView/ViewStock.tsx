@@ -216,7 +216,7 @@ export function ViewStock() {
                 value={quantity}
                 placeholder="Enter quantity"
                 type="number"
-                onChange={e => setQuantity(parseInt(e.target.value) || 0)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuantity(parseInt(e.target.value) || 0)}
                 className="border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <input
