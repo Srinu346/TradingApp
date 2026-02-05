@@ -1,4 +1,3 @@
-import {motion} from "motion/react"
 type SvgIconType = React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
 
 interface InputProps {

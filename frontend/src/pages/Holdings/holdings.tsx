@@ -5,12 +5,30 @@ import { Chart } from "chart.js/auto";
 import { Button } from "../../components/blackButton";
 import { Input } from "../../components/authPage/input";
 
+// Interface for user's stock holdings
+interface StockHolding {
+  id: string;
+  symbol: string;
+  name: string;
+  quantity: number;
+  avgprice: number;
+}
+
+// Interface for master stock with current price
+interface MasterStock {
+  symbol: string;
+  name: string;
+  currentPrice: number;
+}
+
 export function Holdings() {
   const chartContainer = useRef<HTMLCanvasElement | null>(null);
   const chartInstance = useRef<Chart | null>(null);
   const [depositAmount, setDepositAmount] = useState(0);
   const [withdrawAmount, setWithdrawAmount] = useState(0);
-  const [currentBalance,setCurrentBalance] = useState(0);
+  const [currentBalance, setCurrentBalance] = useState(0);
+  const [userStocks, setUserStocks] = useState<StockHolding[]>([]);
+  const [masterStocks, setMasterStocks] = useState<MasterStock[]>([]);
 
   const addBalance = async () => {
     const amount = depositAmount;
@@ -88,6 +106,58 @@ export function Holdings() {
 
   }
 
+  // Fetch user's stock holdings
+  const fetchHoldings = async () => {
+    const username = localStorage.getItem("username");
+    if (!username) return;
+
+    try {
+      const response = await fetch("http://localhost:3000/api/myHoldings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username })
+      });
+      const data = await response.json();
+      console.log("Holdings data:", data);
+      if (data.stocks) {
+        setUserStocks(data.stocks);
+      }
+    } catch (err) {
+      console.error("Error fetching holdings:", err);
+    }
+  };
+
+  // Fetch all stocks for current prices
+  const fetchMasterStocks = async () => {
+    try {
+      const response = await fetch("http://localhost:3000/api/allStocks");
+      const data = await response.json();
+      setMasterStocks(data);
+    } catch (err) {
+      console.error("Error fetching master stocks:", err);
+    }
+  };
+
+  // Get current price for a stock
+  const getCurrentPrice = (symbol: string): number => {
+    const stock = masterStocks.find((s) => s.symbol === symbol);
+    return stock?.currentPrice || 0;
+  };
+
+  // Calculate total current value
+  const calculateCurrentValue = (): number => {
+    return userStocks.reduce((total, stock) => {
+      return total + (stock.quantity * getCurrentPrice(stock.symbol));
+    }, 0);
+  };
+
+  // Calculate total invested value
+  const calculateInvestedValue = (): number => {
+    return userStocks.reduce((total, stock) => {
+      return total + (stock.quantity * stock.avgprice);
+    }, 0);
+  };
+
   useEffect(() => {
     const username = localStorage.getItem("username");
 
@@ -115,7 +185,16 @@ export function Holdings() {
 
     if (username) {
       fetchBalance();
+      fetchHoldings();
+      fetchMasterStocks();
     }
+
+    // Poll for price updates every 5 seconds
+    const interval = setInterval(() => {
+      fetchMasterStocks();
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -193,43 +272,67 @@ export function Holdings() {
 
           <motion.div className="w-[50%] pt-15" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
             <h2 className="pb-10 font-bold text-[40px]">Holdings</h2>
-            <div className="flex  justify-between pb-10">
+            <div className="flex justify-between pb-10">
               <div className="flex flex-col gap-3">
                 <span className="font-bold text-[20px]">Current Value</span>
-                <span className="text-[#999999] font-bold">$0.00</span>
+                <span className="text-[#999999] font-bold">₹{calculateCurrentValue().toFixed(2)}</span>
               </div>
               <div className="flex flex-col gap-3">
                 <span className="font-bold text-[20px]">Invested Value</span>
-                <span className="text-[#999999] font-bold">$0.00</span>
+                <span className="text-[#999999] font-bold">₹{calculateInvestedValue().toFixed(2)}</span>
+              </div>
+              <div className="flex flex-col gap-3">
+                <span className="font-bold text-[20px]">P&L</span>
+                <span className={`font-bold ${calculateCurrentValue() - calculateInvestedValue() >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {calculateCurrentValue() - calculateInvestedValue() >= 0 ? '+' : ''}₹{(calculateCurrentValue() - calculateInvestedValue()).toFixed(2)}
+                </span>
               </div>
             </div>
           </motion.div>
 
-          <motion.div className="w-[50%]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
-            <h2 className="pb-10 font-bold text-[20px]">Your Stocks</h2>
-            <div className="flex flex-row gap-3 w-full justify-between overflow-y-auto">
-              <div className="flex flex-col">
-                <span className="font-bold">Apple INC </span>
-                <span className="font-medium">
-                  Invested:{" "}
-                  <span className="text-[#999999] font-semibold">$0.00</span>
-                </span>
-              </div>
-              <div className="flex gap-4">
-                <div className="flex flex-col">
-                  <span className="font-semibold">Qty:2</span>
-                </div>
-                <div className="flex flex-col items-end">
-                  <span className="font-medium">
-                    Current Price:
-                    <span className="text-[#999999] font-semibold">$0.00</span>
-                  </span>
-                  <span className="font-medium">
-                    Avg Price:
-                    <span className="text-[#999999] font-semibold">$0.00</span>
-                  </span>
-                </div>
-              </div>
+          <motion.div className="w-[60%]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
+            <h2 className="pb-5 font-bold text-[20px]">Your Stocks</h2>
+            <div className="flex flex-col gap-4 max-h-[300px] overflow-y-auto pr-2">
+              {userStocks.length === 0 ? (
+                <div className="text-[#999999] py-4">No stocks in your portfolio. Start investing!</div>
+              ) : (
+                userStocks.map((stock) => {
+                  const currentPrice = getCurrentPrice(stock.symbol);
+                  const investedValue = stock.quantity * stock.avgprice;
+                  const currentValue = stock.quantity * currentPrice;
+                  const pnl = currentValue - investedValue;
+                  const pnlColor = pnl >= 0 ? 'text-green-600' : 'text-red-600';
+
+                  return (
+                    <div key={stock.id} className="flex flex-row gap-3 w-full justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                      <div className="flex flex-col">
+                        <span className="font-bold">{stock.name}</span>
+                        <span className="font-medium text-sm text-[#999999]">{stock.symbol}</span>
+                        <span className="font-medium">
+                          Invested: <span className="text-[#999999] font-semibold">₹{investedValue.toFixed(2)}</span>
+                        </span>
+                      </div>
+                      <div className="flex gap-6">
+                        <div className="flex flex-col items-center">
+                          <span className="text-[#999999] text-sm">Qty</span>
+                          <span className="font-semibold">{stock.quantity}</span>
+                        </div>
+                        <div className="flex flex-col items-end">
+                          <span className="font-medium">
+                            LTP: <span className="text-[#999999] font-semibold">₹{currentPrice.toFixed(2)}</span>
+                          </span>
+                          <span className="font-medium">
+                            Avg: <span className="text-[#999999] font-semibold">₹{stock.avgprice.toFixed(2)}</span>
+                          </span>
+                          <span className={`font-bold ${pnlColor}`}>
+                            {pnl >= 0 ? '+' : ''}₹{pnl.toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </motion.div>
         </div>

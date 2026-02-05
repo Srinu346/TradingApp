@@ -1,6 +1,5 @@
 import {motion} from 'motion/react';
 import { useEffect, useState } from 'react';
-import { set } from 'zod';
 
 export const MarketNews =  () => {
 

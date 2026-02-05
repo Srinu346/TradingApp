@@ -15,12 +15,12 @@ const PORT = process.env.PORT;
 app.use(express.json());
 app.use(cors());
 
-app.use('/auth',router);
-app.use('/api',routerMarketNews);
-app.use('/api',transRouter);
-app.use('/api',stockRoutes);
-app.use('/api',purchaseRouter)
+app.use('/auth', router);
+app.use('/api', routerMarketNews);
+app.use('/api', transRouter);
+app.use('/api', stockRoutes);
+app.use('/api', purchaseRouter)
 
-app.listen(PORT,()=>{
-    console.log("Server Listening ON ");
+app.listen(3000, () => {
+    console.log(`Server Listening ON ${PORT}`);
 })

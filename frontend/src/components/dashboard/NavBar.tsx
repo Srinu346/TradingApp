@@ -1,4 +1,3 @@
-import { motion } from "motion/react"
 import { LinkedIn } from "../../icons/linkedInIcon"
 import { GitHubIcon } from "../../icons/githubIcon"
 import { XIcon } from "../../icons/xIcon"

@@ -4,22 +4,33 @@ import { Router } from "express";
 const purchaseRouter = Router();
 
 purchaseRouter.post("/buy", async (req, res) => {
-    const { username, quantity, currentPrice, symbol, name } = req.body;
+    console.log("Step 1: Received /buy request");
+    console.log("Request body:", req.body);
+
+    const { username, quantity, buyPrice, symbol, name } = req.body;
     const qty = parseInt(quantity);
-    const price = parseFloat(currentPrice);
+    const price = parseFloat(buyPrice);
     const totalAmount = qty * price;
 
+    console.log("Step 2: Parsed values - qty:", qty, "price:", price, "totalAmount:", totalAmount);
+
     try {
+        console.log("Step 3: Finding user:", username);
         const user = await prismaClient.user.findFirst({
             where: { username },
             include: { stocks: { where: { symbol } } }
         });
+        console.log("Step 4: User found:", user ? "Yes" : "No", user?.balance);
 
         if (!user) return res.status(401).json({ message: "User not found" });
-        if (totalAmount > user.balance) return res.status(402).json({ message: "Insufficient Balance" });
+        if (totalAmount > user.balance) {
+            console.log("Step 5: Insufficient balance - needed:", totalAmount, "have:", user.balance);
+            return res.status(402).json({ message: "Insufficient Balance" });
+        }
 
+        console.log("Step 5: Starting transaction");
         await prismaClient.$transaction(async (prisma) => {
-            // Deduct balance
+            console.log("Step 6: Deducting balance");
             await prisma.user.update({
                 where: { username },
                 data: { balance: user.balance - totalAmount }
@@ -27,6 +38,7 @@ purchaseRouter.post("/buy", async (req, res) => {
 
             if (user.stocks.length > 0) {
                 const stock = user.stocks[0];
+                console.log("Step 7: Updating existing stock holding");
                 if (stock) await prisma.stocks.update({
                     where: { id: stock.id },
                     data: {
@@ -35,6 +47,7 @@ purchaseRouter.post("/buy", async (req, res) => {
                     }
                 });
             } else {
+                console.log("Step 7: Creating new stock holding");
                 await prisma.stocks.create({
                     data: {
                         userId: user.username,
@@ -47,9 +60,10 @@ purchaseRouter.post("/buy", async (req, res) => {
             }
         });
 
+        console.log("Step 8: Transaction completed successfully");
         return res.json({ message: "Stock purchased successfully!" });
     } catch (err) {
-        console.error(err);
+        console.error("Error at some step:", err);
         return res.status(500).json({ message: "Something went wrong" });
     }
 });

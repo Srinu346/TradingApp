@@ -10,7 +10,7 @@ const secret = process.env.JWTSECRETKEY || "hello";
 
 router.post("/signup", async (req, res) => {
   try {
-    const { username, email, password , firstName , lastName } = req.body;
+    const { username, email, password, firstName, lastName } = req.body;
 
     const existingUser = await prisma.user.findUnique({
       where: { email },
@@ -20,21 +20,20 @@ router.post("/signup", async (req, res) => {
       return res.status(400).json({ error: "User already exists" });
     }
 
-    else
-    {
-      const hashedPassword = bcrypt.hashSync(password,5);
+    else {
+      const hashedPassword = bcrypt.hashSync(password, 5);
 
-    const newUser = await prisma.user.create({
-      data: {
-        username,
-        email,
-        password:hashedPassword,
-        firstName,
-        lastName
-      },
-    });
+      const newUser = await prisma.user.create({
+        data: {
+          username,
+          email,
+          password: hashedPassword,
+          firstName,
+          lastName
+        },
+      });
 
-    res.status(201).json({ message: "User created successfully", user: newUser });
+      res.status(201).json({ message: "User created successfully", user: newUser });
     }
   } catch (error) {
     console.error(error);
@@ -42,37 +41,38 @@ router.post("/signup", async (req, res) => {
   }
 });
 
-router.post("/signin", async (req,res)=>{
-  const {username,password} = req.body;
+router.post("/signin", async (req, res) => {
+  const { username, password } = req.body;
 
   const existingUser = await prisma.user.findUnique({
-      where: { username },
-    });
+    where: { username },
+  });
 
-    if(!existingUser){
-      res.redirect("/signup");
-    }
+  if (!existingUser) {
+    return res.status(404).json({ error: "User not found. Please sign up." });
+  }
 
-  const hashedPassword = existingUser?.password;
+  const hashedPassword = existingUser.password;
   if (!hashedPassword) {
     return res.status(400).json({ error: "Invalid credentials" });
   }
+
   const passwordMatch = bcrypt.compareSync(password, hashedPassword);
 
-  if(passwordMatch){
+  if (passwordMatch) {
     const token = jwt.sign({
-      data:username
-    },secret);
+      data: username
+    }, secret);
 
     console.log(secret);
-    res.status(200).json({token,username});
+    return res.status(200).json({ token, username });
   }
-  else{
-    res.status(500).send("Login Failed");
+  else {
+    return res.status(401).json({ error: "Invalid password" });
   }
 })
 
-router.get("/check",AuthMiddleWare,(req,res)=>{
-  res.json({message:"Middleware is working!!!"});
+router.get("/check", AuthMiddleWare, (req, res) => {
+  res.json({ message: "Middleware is working!!!" });
 })
 export default router;

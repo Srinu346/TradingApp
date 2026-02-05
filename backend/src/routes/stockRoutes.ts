@@ -120,7 +120,7 @@ async function flushToDatabase() {
 
 // --- Initialize cache + run market engine ---
 updateStocks();
-setInterval(updateStocks, 10000);
+setInterval(updateStocks, 5000);
 setInterval(flushToDatabase, 5000);
 
 // --- Routes ---

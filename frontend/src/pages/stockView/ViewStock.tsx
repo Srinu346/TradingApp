@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "../../components/blackButton";
 import { useParams } from "react-router-dom";
 import { TurkishLira } from "lucide-react";
+import { useUser } from "../../context/UserContext";
 
 interface PriceHistoryProps {
   time: number;
@@ -15,14 +16,30 @@ interface PriceHistoryProps {
   close: number;
 }
 
+interface buyProps {
+  username: string,
+  quantity: number,
+  buyPrice: number,
+  symbol: string,
+  name: string
+}
+
 interface StockDetailsParams {
   name: string;
   currentPrice: number;
   priceHistory: PriceHistoryProps[];
 }
 
+interface sellProps {
+  username: string,
+  quantity: number,
+  sellPrice: number,
+  symbol: string
+}
+
 export function ViewStock() {
   const { symbol } = useParams();
+  const { username } = useUser();
   const [stockDetails, setStockDetails] = useState<StockDetailsParams>();
   const [currentChart, setCurrentChart] = useState<"area" | "candle" | "line" | "bar">("area");
   const [modalOpen, setModalOpen] = useState(false);
@@ -93,7 +110,7 @@ export function ViewStock() {
     };
 
     const fetchStock = async () => {
-      const res = await fetch(`http://localhost:3000/api/allStocks/${symbol}`,{method: "GET"});
+      const res = await fetch(`http://localhost:3000/api/allStocks/${symbol}`, { method: "GET" });
       const data = await res.json();
       const normalized = {
         ...data,
@@ -117,7 +134,7 @@ export function ViewStock() {
         height: chartElement.current.clientHeight,
         layout: { background: { color: "#ffffff" }, textColor: "#000" },
         grid: { vertLines: { color: "#eee" }, horzLines: { color: "#eee" } },
-        timeScale: {timeVisible:true,secondsVisible:true},
+        timeScale: { timeVisible: true, secondsVisible: true },
       });
 
       const handleResize = () => {
@@ -131,74 +148,95 @@ export function ViewStock() {
     }
   }, []);
 
+  // Track the previous chart type so we know when to recreate the series
+  const prevChartTypeRef = useRef<typeof currentChart | null>(null);
+
   // Update chart whenever stock details or chart type changes
   useEffect(() => {
     if (!chartRef.current || !stockDetails) return;
 
     const chart = chartRef.current;
+    const chartTypeChanged = prevChartTypeRef.current !== currentChart;
+    prevChartTypeRef.current = currentChart;
 
-    // Remove previous series
-    if (seriesRef.current) {
+    // Only remove and recreate series if chart type changed
+    if (chartTypeChanged && seriesRef.current) {
       chart.removeSeries(seriesRef.current);
       seriesRef.current = null;
     }
 
-    // Map priceHistory to correct chart data
-    if (currentChart === "area") {
-      seriesRef.current = chart.addSeries(AreaSeries, {
-        lineColor: "#2962FF",
-        topColor: "#2962FF",
-        bottomColor: "rgba(41, 98, 255, 0.28)",
-      });
+    // Helper to get chart data based on chart type
+    const getAreaLineData = () => stockDetails.priceHistory.map(p => ({ time: p.time as any, value: p.close }));
+    const getCandleBarData = () => stockDetails.priceHistory.map(p => ({
+      time: p.time as any,
+      open: p.open,
+      high: p.high,
+      low: p.low,
+      close: p.close,
+    }));
 
-      const areaData = stockDetails.priceHistory.map(p => ({ time: p.time, value: p.close }));
-      seriesRef.current.setData(areaData);
-
-    } else if (currentChart === "candle") {
-      seriesRef.current = chart.addSeries(CandlestickSeries, {
-        upColor: "#26a69a",
-        downColor: "#ef5350",
-        borderVisible: false,
-        wickUpColor: "#26a69a",
-        wickDownColor: "#ef5350",
-      });
-
-      const candleData = stockDetails.priceHistory.map(p => ({
-        time: p.time,
-        open: p.open,
-        high: p.high,
-        low: p.low,
-        close: p.close,
-      }));
-      seriesRef.current.setData(candleData);
-
-    } else if (currentChart === "line") {
-      seriesRef.current = chart.addSeries(LineSeries, { color: "#2962FF", lineWidth: 2 });
-      const lineData = stockDetails.priceHistory.map(p => ({ time: p.time, value: p.close }));
-      seriesRef.current.setData(lineData);
-
-    } else if (currentChart === "bar") {
-      seriesRef.current = chart.addSeries(BarSeries);
-      const barData = stockDetails.priceHistory.map(p => ({
-        time: p.time,
-        open: p.open,
-        high: p.high,
-        low: p.low,
-        close: p.close,
-      }));
-      seriesRef.current.setData(barData);
+    // Create series if it doesn't exist (first render or chart type changed)
+    if (!seriesRef.current) {
+      if (currentChart === "area") {
+        seriesRef.current = chart.addSeries(AreaSeries, {
+          lineColor: "#2962FF",
+          topColor: "#2962FF",
+          bottomColor: "rgba(41, 98, 255, 0.28)",
+        });
+      } else if (currentChart === "candle") {
+        seriesRef.current = chart.addSeries(CandlestickSeries, {
+          upColor: "#26a69a",
+          downColor: "#ef5350",
+          borderVisible: false,
+          wickUpColor: "#26a69a",
+          wickDownColor: "#ef5350",
+        });
+      } else if (currentChart === "line") {
+        seriesRef.current = chart.addSeries(LineSeries, { color: "#2962FF", lineWidth: 2 });
+      } else if (currentChart === "bar") {
+        seriesRef.current = chart.addSeries(BarSeries);
+      }
     }
 
+    // Update the series data (works for both initial load and updates)
+    if (seriesRef.current) {
+      if (currentChart === "area" || currentChart === "line") {
+        seriesRef.current.setData(getAreaLineData());
+      } else {
+        seriesRef.current.setData(getCandleBarData());
+      }
+
+      // Auto-fit content so new candles are visible
+      chart.timeScale().fitContent();
+    }
+  }, [stockDetails, currentChart]);
+
+  // Cleanup on unmount
+  useEffect(() => {
     return () => {
-      if (seriesRef.current) {
-        chart.removeSeries(seriesRef.current);
+      if (seriesRef.current && chartRef.current) {
+        chartRef.current.removeSeries(seriesRef.current);
         seriesRef.current = null;
       }
     };
-  }, [stockDetails, currentChart]);
+  }, []);
 
-  async function handleSell() {
-    await fetch("http://localhost:3000/api/sell", { method: "POST" });
+  async function handleSell(props: sellProps) {
+    console.log(props);
+    await fetch("http://localhost:3000/api/sell", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(props)
+    });
+  }
+
+  async function handleBuy(props: buyProps) {
+    console.log(props);
+    await fetch("http://localhost:3000/api/buy", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(props)
+    });
   }
 
   return (
@@ -226,7 +264,26 @@ export function ViewStock() {
               />
             </div>
             <div className="flex gap-4 justify-end">
-              <Button label={`Confirm ${buy ? "Buy" : "Sell"}`} onClick={() => {}} type="black" className="p-2" />
+              <Button label={`Confirm ${buy ? "Buy" : "Sell"}`} onClick={() => {
+                if (!buy && username && symbol && stockDetails?.currentPrice) {
+                  handleSell({
+                    username: username,
+                    quantity: quantity,
+                    sellPrice: stockDetails.currentPrice,
+                    symbol: symbol
+                  });
+                }
+                if (buy && username && symbol && stockDetails?.currentPrice) {
+                  handleBuy({
+                    username: username,
+                    quantity: quantity,
+                    buyPrice: stockDetails.currentPrice,
+                    symbol: symbol,
+                    name: stockDetails.name
+                  });
+                }
+                setModalOpen(false);
+              }} type="black" className="p-2" />
               <button className="px-4 py-2 bg-red-600 text-white rounded-lg" onClick={() => setModalOpen(false)}>
                 Cancel
               </button>
@@ -241,8 +298,8 @@ export function ViewStock() {
           <div className="flex flex-col gap-2">
             <div className="text-[#999999] font-bold text-[30px]">{symbol}</div>
             <div className="flex gap-2">
-              <Button className="p-2" label="Buy" type="black" onClick={() => { setModalOpen(true); setBuy(true); }} />
-              <Button className="p-2" label="Sell" onClick={() => { setModalOpen(true); setBuy(false); }} />
+              <Button className="p-2" label="Buy" onClick={() => { setModalOpen(true); setBuy(true); }} />
+              <Button className="p-2" label="Sell" onClick={() => { setModalOpen(true); setBuy(false);  }} />
             </div>
           </div>
 
