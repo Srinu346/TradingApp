@@ -164,4 +164,12 @@ stockRoutes.post("/myHoldings", async (req, res) => {
   return res.json(userStocks);
 });
 
+stockRoutes.get("/orders/:symbol", async (req, res) => {
+  const { symbol } = req.params;
+  const orders = await prisma.orders.findMany({
+    where: { symbol },
+  });
+  return res.json(orders);
+});
+
 export default stockRoutes;

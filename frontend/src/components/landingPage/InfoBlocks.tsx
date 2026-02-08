@@ -33,7 +33,7 @@ export const InfoBlocks = () => {
           transition={{ type: 'spring', stiffness: 300 }}
           className="flex flex-col space-y-3"
         >
-          <InfoBlockComponents  />
+          <InfoBlockComponents />
           <h2 className="text-lg text-left text-[#000000] font-semibold">Smart Alerts</h2>
           <h3 className="text-left text-[#999999] font-semibold">Stay notified on price changes</h3>
         </motion.div>
@@ -44,7 +44,7 @@ export const InfoBlocks = () => {
           transition={{ type: 'spring', stiffness: 300 }}
           className="flex flex-col space-y-3"
         >
-          <InfoBlockComponents  />
+          <InfoBlockComponents />
           <h2 className="text-lg text-[#000000] text-left font-semibold">Community Hub</h2>
           <h3 className="text-left text-[#999999] font-semibold">Engage with other traders</h3>
         </motion.div>

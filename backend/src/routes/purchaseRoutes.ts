@@ -58,6 +58,19 @@ purchaseRouter.post("/buy", async (req, res) => {
                     }
                 });
             }
+
+            // Create order record for transaction history
+            console.log("Step 8: Creating order record");
+            await prisma.orders.create({
+                data: {
+                    userId: username,
+                    symbol,
+                    name,
+                    quantity: qty,
+                    price,
+                    type: "BUY"
+                }
+            });
         });
 
         console.log("Step 8: Transaction completed successfully");
@@ -110,12 +123,41 @@ purchaseRouter.post("/sell", async (req, res) => {
                     data: { quantity: stock.quantity - qty }
                 });
             }
+
+            // Create order record for transaction history
+            await prisma.orders.create({
+                data: {
+                    userId: username,
+                    symbol,
+                    name: stock.name,
+                    quantity: qty,
+                    price,
+                    type: "SELL"
+                }
+            });
         });
 
         return res.json({ message: "Stock sold successfully!" });
     } catch (err) {
         console.error(err);
         return res.status(500).json({ message: "Something went wrong" });
+    }
+});
+
+// Get user's order history
+purchaseRouter.post("/orders", async (req, res) => {
+    const { username } = req.body;
+
+    try {
+        const orders = await prismaClient.orders.findMany({
+            where: { userId: username },
+            orderBy: { createdAt: "desc" }
+        });
+
+        return res.json({ orders });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: "Failed to fetch orders" });
     }
 });
 

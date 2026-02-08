@@ -4,7 +4,7 @@ import { Input } from '../../components/authPage/input'
 import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { z } from 'zod'
-import { useToaster, Message } from "rsuite";
+import { addToast } from "@heroui/toast";
 
 const FormInput = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -49,7 +49,6 @@ const listItem = {
 export function RegisterPage() {
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const navigate = useNavigate();
-  const toaster = useToaster();
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -71,12 +70,11 @@ export function RegisterPage() {
           formattedErrors[field] = issue.message;
 
           // 🔔 show field-specific toast
-          toaster.push(
-            <Message type="error" showIcon closable>
-              {issue.message}
-            </Message>,
-            { placement: 'topCenter', duration: 3000 }
-          );
+          addToast({
+            title: "Validation Error",
+            description: issue.message,
+            color: "danger",
+          });
         }
       });
 
@@ -94,23 +92,21 @@ export function RegisterPage() {
     });
 
     if (!res.ok) {
-      toaster.push(
-        <Message type="error" showIcon closable>
-          Registration failed 🚨
-        </Message>,
-        { placement: 'topCenter', duration: 3000 }
-      );
+      addToast({
+        title: "Registration Failed",
+        description: "Unable to create account. Please try again.",
+        color: "danger",
+      });
       return;
     }
 
-    toaster.push(
-      <Message type="success" showIcon closable>
-        Registration successful 🎉
-      </Message>,
-      { placement: 'topCenter', duration: 3000 }
-    );
+    addToast({
+      title: "Registration Successful 🎉",
+      description: "Your account has been created. Redirecting...",
+      color: "success",
+    });
 
-    navigate("/dashboard");
+    navigate("/login");
   };
 
   return (

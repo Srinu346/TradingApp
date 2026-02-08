@@ -1,63 +1,88 @@
-import { easeInOut, motion } from "motion/react"
 import { LinkedIn } from "../icons/linkedInIcon"
 import { GitHubIcon } from "../icons/githubIcon"
 import { XIcon } from "../icons/xIcon"
 
 export const Footer = () => {
 
-  const footerTitle = "text-black font-semibold text-base"
-  const footerContent = "text-[#999999] font-medium text-base hover:text-black transition-colors duration-200"
+  const footerTitle = "text-black font-semibold text-base mb-4"
+  const footerContent = "text-gray-500 font-medium text-sm hover:text-black transition-colors duration-200"
 
   return (
-    <div className="w-[70vw] max-w-[80vw] pt-25 flex justify-between">
-
-      {/* Brand */}
-      <motion.div
-        className="w-[50vw] flex items-start"
-        initial={{ opacity: 0, x: -30 }}
-        whileInView={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.6, ease: easeInOut }}
-      >
-        <span className="text-lg font-bold text-black">TradeX</span>
-      </motion.div>
-
-      {/* Quick Links */}
-      <div className="w-[50%] flex gap-5">
-        <motion.div
-        className="flex flex-col space-y-4 w-full"
-        initial={{ opacity: 0, x: 50 }}
-        whileInView={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.6, ease: easeInOut }}
-      >
-        <div className={footerTitle}>Quick Links</div>
-        <div className="flex flex-col space-y-4">
-          <a href="#" className={footerContent}>Home</a>
-          <a href="#" className={footerContent}>Features</a>
-          <a href="#" className={footerContent}>Contact</a>
-        </div>
-      </motion.div>
-
-      {/* Social Links */}
-      <motion.div
-        className=" w-[50%] flex flex-col gap-5"
-        initial={{ opacity: 0, x: 50 }}
-        whileInView={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.6, ease: easeInOut }}
-      >
-        <div className={footerTitle}>Follow Us</div>
-        <div className="flex flex-col space-y-4 w-full justify-center items-center">
-          <div><a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="text-[#999999] hover:text-black transition-colors duration-200">
-            <XIcon />
-          </a></div>
-          <div><a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="text-[#999999] hover:text-black transition-colors duration-200">
-            <LinkedIn />
-          </a></div>
-          <div><a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-[#999999] hover:text-black transition-colors duration-200">
-            <GitHubIcon />
-          </a></div>
+    <footer className="w-full bg-white border-t border-gray-100 mt-auto">
+      <div className="max-w-6xl mx-auto px-6 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
+          {/* Brand */}
+          <div className="md:col-span-1">
+            <span className="text-xl font-bold text-black">TradeX</span>
+            <p className="text-gray-500 font-medium text-sm mt-3 leading-relaxed">
+              The ultimate demo trading platform. Practice, learn, and master the markets risk-free.
+            </p>
           </div>
-      </motion.div>
+
+          {/* Quick Links */}
+          <div>
+            <div className={footerTitle}>Quick Links</div>
+            <div className="flex flex-col space-y-2">
+              <a href="/" className={footerContent}>Home</a>
+              <a href="/dashboard" className={footerContent}>Dashboard</a>
+              <a href="/viewMarket" className={footerContent}>Market</a>
+              <a href="/holdings" className={footerContent}>Portfolio</a>
+            </div>
+          </div>
+
+          {/* Company */}
+          <div>
+            <div className={footerTitle}>Company</div>
+            <div className="flex flex-col space-y-2">
+              <a href="#" className={footerContent}>About Us</a>
+              <a href="#" className={footerContent}>Pricing</a>
+              <a href="#" className={footerContent}>Support</a>
+              <a href="#" className={footerContent}>Contact</a>
+            </div>
+          </div>
+
+          {/* Social Links */}
+          <div>
+            <div className={footerTitle}>Follow Us</div>
+            <div className="flex flex-row gap-4">
+              <a
+                href="https://twitter.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-black transition-colors duration-200"
+              >
+                <XIcon />
+              </a>
+              <a
+                href="https://linkedin.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-black transition-colors duration-200"
+              >
+                <LinkedIn />
+              </a>
+              <a
+                href="https://github.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-black transition-colors duration-200"
+              >
+                <GitHubIcon />
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* Copyright */}
+        <div className="pt-8 mt-8 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className="text-gray-400 text-sm">© 2026 TradeX. All rights reserved.</p>
+          <div className="flex gap-6">
+            <a href="#" className="text-gray-400 text-sm hover:text-black transition-colors">Privacy Policy</a>
+            <a href="#" className="text-gray-400 text-sm hover:text-black transition-colors">Terms of Service</a>
+          </div>
+        </div>
       </div>
-    </div>
+    </footer>
   )
 }
+

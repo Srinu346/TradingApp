@@ -1,34 +1,40 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 
-export function UserMessage () {
+export function UserMessage() {
     const navigate = useNavigate();
+    const [username, setUsername] = useState("");
 
-    const [username,setUsername] = useState("");
-
-    useEffect(()=>{
+    useEffect(() => {
         const user = localStorage.getItem("username");
-        if(!user){
+        if (!user) {
             navigate("/login");
         }
         user && setUsername(user);
-    })
+    }, [navigate]);
 
     const date = new Date();
-
     const year = date.getFullYear();
     const shortMonthName = date.toLocaleString('default', { month: 'short' });
-    const day = date.getDate(); 
+    const day = date.getDate();
+
+    // Get greeting based on time of day
+    const getGreeting = () => {
+        const hour = date.getHours();
+        if (hour < 12) return "Good morning";
+        if (hour < 17) return "Good afternoon";
+        return "Good evening";
+    };
 
     return (
-        <div className="max-w-[80vw] w-[80vw] pt-10">
-            <div className="flex flex-col justify-start">
-                <p className="font-bold text-[32px] ">
-                    Hello {username}. <br/>
-                     Welcome to your dashboard.
-                </p>
-                <p className="font-bold text-[32px] text-[#999999]">
-                    Latest updates and your performance <br/> overview for {day} {shortMonthName} , {year}.
+        <div className="w-full">
+            <div className="flex flex-col justify-start gap-2">
+                <h1 className="font-bold text-3xl lg:text-4xl leading-tight text-gray-900">
+                    {getGreeting()}, {username}! 👋
+                </h1>
+                <p className="font-medium text-lg lg:text-xl text-gray-500 leading-relaxed">
+                    Here's your performance overview for{" "}
+                    <span className="text-gray-600">{day} {shortMonthName}, {year}</span>
                 </p>
             </div>
         </div>

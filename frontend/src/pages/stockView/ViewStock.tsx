@@ -1,5 +1,6 @@
 import { motion } from "motion/react";
 import { NavBar } from "../../components/dashboard/NavBar";
+import { Footer } from "../../components/footer";
 import { AreaChartIcon, BarChartIcon, CandleChartIcon, LineChartIcon } from "../../icons/AreaChartIcon";
 import { AreaSeries, BarSeries, CandlestickSeries, createChart, type IChartApi, type ISeriesApi, LineSeries } from "lightweight-charts";
 import { useEffect, useRef, useState } from "react";
@@ -7,6 +8,7 @@ import { Button } from "../../components/blackButton";
 import { useParams } from "react-router-dom";
 import { TurkishLira } from "lucide-react";
 import { useUser } from "../../context/UserContext";
+import { addToast } from "@heroui/toast";
 
 interface PriceHistoryProps {
   time: number;
@@ -37,14 +39,26 @@ interface sellProps {
   symbol: string
 }
 
+interface OrderProps {
+  id: number;
+  userId: string;
+  symbol: string;
+  name: string;
+  quantity: number;
+  price: number;
+  type: "BUY" | "SELL";
+  createdAt: string;
+}
+
 export function ViewStock() {
   const { symbol } = useParams();
   const { username } = useUser();
   const [stockDetails, setStockDetails] = useState<StockDetailsParams>();
   const [currentChart, setCurrentChart] = useState<"area" | "candle" | "line" | "bar">("area");
   const [modalOpen, setModalOpen] = useState(false);
-  const [quantity, setQuantity] = useState(0);
+  const [quantity, setQuantity] = useState('');
   const [buy, setBuy] = useState(false);
+  const [orders, setOrders] = useState<OrderProps[]>([]);
 
   const chartElement = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -122,6 +136,26 @@ export function ViewStock() {
     fetchStock();
 
     const interval = setInterval(fetchStock, 5000); // Poll every 5s
+    return () => clearInterval(interval);
+  }, [symbol]);
+
+  // Fetch orders for order book
+  useEffect(() => {
+    if (!symbol) return;
+
+    const fetchOrders = async () => {
+      try {
+        const res = await fetch(`http://localhost:3000/api/allStocks/orders/${symbol}`, { method: "GET" });
+        const data = await res.json();
+        setOrders(data);
+      } catch (error) {
+        console.error("Error fetching orders:", error);
+      }
+    };
+
+    fetchOrders();
+
+    const interval = setInterval(fetchOrders, 5000); // Poll every 5s
     return () => clearInterval(interval);
   }, [symbol]);
 
@@ -223,20 +257,64 @@ export function ViewStock() {
 
   async function handleSell(props: sellProps) {
     console.log(props);
-    await fetch("http://localhost:3000/api/sell", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(props)
-    });
+    try {
+      const response = await fetch("http://localhost:3000/api/sell", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(props)
+      });
+
+      if (response.ok) {
+        addToast({
+          title: "Sell Order Executed",
+          description: `Successfully sold ${props.quantity} shares of ${props.symbol} at ₹${props.sellPrice}`,
+          color: "success",
+        });
+      } else {
+        addToast({
+          title: "Sell Order Failed",
+          description: "Unable to execute sell order. Please try again.",
+          color: "danger",
+        });
+      }
+    } catch (error) {
+      addToast({
+        title: "Error",
+        description: "Network error. Please check your connection.",
+        color: "danger",
+      });
+    }
   }
 
   async function handleBuy(props: buyProps) {
     console.log(props);
-    await fetch("http://localhost:3000/api/buy", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(props)
-    });
+    try {
+      const response = await fetch("http://localhost:3000/api/buy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(props)
+      });
+
+      if (response.ok) {
+        addToast({
+          title: "Buy Order Executed",
+          description: `Successfully purchased ${props.quantity} shares of ${props.name} at ₹${props.buyPrice}`,
+          color: "success",
+        });
+      } else {
+        addToast({
+          title: "Buy Order Failed",
+          description: "Unable to execute buy order. Please try again.",
+          color: "danger",
+        });
+      }
+    } catch (error) {
+      addToast({
+        title: "Error",
+        description: "Network error. Please check your connection.",
+        color: "danger",
+      });
+    }
   }
 
   return (
@@ -253,22 +331,42 @@ export function ViewStock() {
               <input
                 value={quantity}
                 placeholder="Enter quantity"
-                type="number"
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuantity(parseInt(e.target.value) || 0)}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  const value = e.target.value.replace(/[^0-9]/g, '');
+                  setQuantity(value);
+                }}
                 className="border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <input
-                value={stockDetails?.currentPrice}
-                readOnly
-                className="border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-gray-500">Market Price (All orders executed at market price)</label>
+                <input
+                  value={`₹${stockDetails?.currentPrice || 0}`}
+                  readOnly
+                  placeholder="Market Price"
+                  className="border border-gray-300 rounded-md p-2 bg-gray-50 text-gray-600 cursor-not-allowed"
+                />
+              </div>
             </div>
             <div className="flex gap-4 justify-end">
               <Button label={`Confirm ${buy ? "Buy" : "Sell"}`} onClick={() => {
+                // Validate quantity
+                const qty = parseInt(quantity) || 0;
+                if (!quantity || qty <= 0) {
+                  addToast({
+                    title: "Invalid Quantity",
+                    description: "Please enter a quantity greater than 0",
+                    color: "warning",
+                  });
+                  return;
+                }
+
                 if (!buy && username && symbol && stockDetails?.currentPrice) {
                   handleSell({
                     username: username,
-                    quantity: quantity,
+                    quantity: parseInt(quantity),
                     sellPrice: stockDetails.currentPrice,
                     symbol: symbol
                   });
@@ -276,15 +374,16 @@ export function ViewStock() {
                 if (buy && username && symbol && stockDetails?.currentPrice) {
                   handleBuy({
                     username: username,
-                    quantity: quantity,
+                    quantity: parseInt(quantity),
                     buyPrice: stockDetails.currentPrice,
                     symbol: symbol,
                     name: stockDetails.name
                   });
                 }
                 setModalOpen(false);
+                setQuantity(''); // Reset quantity after closing
               }} type="black" className="p-2" />
-              <button className="px-4 py-2 bg-red-600 text-white rounded-lg" onClick={() => setModalOpen(false)}>
+              <button className="px-4 py-2 bg-red-600 text-white rounded-lg" onClick={() => { setModalOpen(false); setQuantity(''); }}>
                 Cancel
               </button>
             </div>
@@ -299,7 +398,7 @@ export function ViewStock() {
             <div className="text-[#999999] font-bold text-[30px]">{symbol}</div>
             <div className="flex gap-2">
               <Button className="p-2" label="Buy" onClick={() => { setModalOpen(true); setBuy(true); }} />
-              <Button className="p-2" label="Sell" onClick={() => { setModalOpen(true); setBuy(false);  }} />
+              <Button className="p-2" label="Sell" onClick={() => { setModalOpen(true); setBuy(false); }} />
             </div>
           </div>
 
@@ -312,16 +411,66 @@ export function ViewStock() {
           </div>
         </div>
 
-        <div className="flex flex-row w-full gap-2 items-center p-5 bg-gray-100 rounded-xl">
-          <div className="h-[67vh] flex flex-col gap-4 justify-center bg-gray-100">
-            <button className="hover:bg-white rounded-sm" onClick={() => setCurrentChart("candle")}><CandleChartIcon /></button>
-            <button className="hover:bg-white rounded-sm" onClick={() => setCurrentChart("area")}><AreaChartIcon /></button>
-            <button className="hover:bg-white rounded-sm" onClick={() => setCurrentChart("line")}><LineChartIcon /></button>
-            <button className="hover:bg-white rounded-sm p-1" onClick={() => setCurrentChart("bar")}><BarChartIcon /></button>
+        <div className="flex flex-row w-full gap-2 items-center p-5 bg-gray-100 rounded-2xl">
+          <div className="h-[67vh] flex flex-col gap-3 justify-center bg-gray-100">
+            <button className={`p-2 rounded-lg transition-all ${currentChart === "candle" ? "bg-white shadow-sm" : "hover:bg-white/70"}`} onClick={() => setCurrentChart("candle")}><CandleChartIcon /></button>
+            <button className={`p-2 rounded-lg transition-all ${currentChart === "area" ? "bg-white shadow-sm" : "hover:bg-white/70"}`} onClick={() => setCurrentChart("area")}><AreaChartIcon /></button>
+            <button className={`p-2 rounded-lg transition-all ${currentChart === "line" ? "bg-white shadow-sm" : "hover:bg-white/70"}`} onClick={() => setCurrentChart("line")}><LineChartIcon /></button>
+            <button className={`p-2 rounded-lg transition-all ${currentChart === "bar" ? "bg-white shadow-sm" : "hover:bg-white/70"}`} onClick={() => setCurrentChart("bar")}><BarChartIcon /></button>
           </div>
           <div className="w-full border-solid border-blue-500 h-[70vh] bg-gray-100" ref={chartElement}></div>
         </div>
+
+        {/* Order Book Section */}
+        <div className="w-full mt-10 mb-10">
+          <h2 className="text-2xl font-bold mb-6 text-gray-800">Order Book</h2>
+
+          <div className="bg-gradient-to-br from-gray-50 to-slate-50 rounded-2xl p-6 shadow-lg border border-gray-200">
+            <div className="bg-white rounded-xl overflow-hidden">
+              <div className="grid grid-cols-5 gap-2 p-4 bg-gray-100 text-gray-700 text-sm font-semibold">
+                <span>Type</span>
+                <span>User</span>
+                <span className="text-right">Qty</span>
+                <span className="text-right">Price</span>
+                <span className="text-right">Time</span>
+              </div>
+
+              <div className="max-h-[400px] overflow-y-auto">
+                {orders.length === 0 ? (
+                  <div className="p-6 text-center text-gray-400">No orders yet</div>
+                ) : (
+                  orders
+                    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                    .map((order, idx) => (
+                      <div
+                        key={order.id}
+                        className={`grid grid-cols-5 gap-2 p-3 text-sm border-b border-gray-100 hover:bg-gray-50 transition-colors ${idx % 2 === 0 ? 'bg-gray-50/50' : 'bg-white'}`}
+                      >
+                        <span>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${order.type === "BUY"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-red-100 text-red-700"
+                            }`}>
+                            {order.type}
+                          </span>
+                        </span>
+                        <span className="font-medium text-gray-700 truncate">{order.userId}</span>
+                        <span className={`text-right font-semibold ${order.type === "BUY" ? "text-green-600" : "text-red-600"}`}>
+                          {order.quantity}
+                        </span>
+                        <span className="text-right text-gray-600">₹{order.price.toFixed(2)}</span>
+                        <span className="text-right text-gray-400 text-xs">
+                          {new Date(order.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                    ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
+      <Footer />
     </div>
   );
 }

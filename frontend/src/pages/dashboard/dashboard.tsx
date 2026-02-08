@@ -6,19 +6,48 @@ import { Footer } from "../../components/footer"
 import { motion } from "motion/react"
 
 export function DashBoardPage() {
+
   return (
-    <motion.div className="flex flex-col justify-center items-center">
-      <motion.div initial={{ opacity: 0 , x:-50 }} animate={{ opacity: 1 , x:0 }} transition={{ duration: 0.4, when: 'beforeChildren', staggerChildren: 0.25 }} className="w-full h-[20vh]">
-        <NavBar />
-      </motion.div>
-      <motion.div initial={{ opacity: 0 , y:16 }} animate={{ opacity: 1 , y:0 }} transition={{ duration: 0.4, when: 'beforeChildren', staggerChildren: 0.25 }} className=" pb-10 gap-10 mt-20 flex flex-col justify-between items-center h-screen"> {/* padding so content doesn’t hide behind fixed navbar */}
-        <div><Stats /></div>
-        <div><UserMessage/></div>
-        <div ><MarketNews/></div>
-      </motion.div>
-      <div className="pt-50">
-        <Footer />
-      </div>
-    </motion.div>
+    <div className="min-h-screen bg-[#fafafa]">
+      {/* Fixed NavBar */}
+      <NavBar />
+
+      {/* Main Content - with proper spacing from fixed navbar */}
+      <main className="pt-24 pb-16 min-h-screen">
+        <div className="max-w-6xl mx-auto px-6">
+          {/* Section 1: User Greeting */}
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="mb-12"
+          >
+            <UserMessage />
+          </motion.section>
+
+          {/* Section 2: Stats Cards */}
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+            className="mb-12"
+          >
+            <Stats />
+          </motion.section>
+
+          {/* Section 3: Market News */}
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+          >
+            <MarketNews />
+          </motion.section>
+        </div>
+      </main>
+
+      {/* Footer */}
+      <Footer />
+    </div>
   )
 }

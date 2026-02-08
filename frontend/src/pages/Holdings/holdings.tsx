@@ -1,9 +1,12 @@
 import { motion, useScroll } from "motion/react";
-import { NavBar } from "../../components/marketView/NavBar";
+import { NavBar } from "../../components/dashboard/NavBar";
+import { Footer } from "../../components/footer";
 import { useRef, useEffect, useState } from "react";
 import { Chart } from "chart.js/auto";
 import { Button } from "../../components/blackButton";
 import { Input } from "../../components/authPage/input";
+import { useNavigate } from "react-router-dom";
+import { addToast } from "@heroui/toast";
 
 // Interface for user's stock holdings
 interface StockHolding {
@@ -22,6 +25,7 @@ interface MasterStock {
 }
 
 export function Holdings() {
+  const navigate = useNavigate();
   const chartContainer = useRef<HTMLCanvasElement | null>(null);
   const chartInstance = useRef<Chart | null>(null);
   const [depositAmount, setDepositAmount] = useState(0);
@@ -29,81 +33,129 @@ export function Holdings() {
   const [currentBalance, setCurrentBalance] = useState(0);
   const [userStocks, setUserStocks] = useState<StockHolding[]>([]);
   const [masterStocks, setMasterStocks] = useState<MasterStock[]>([]);
+  const [portfolioHistory, setPortfolioHistory] = useState<{ time: Date, currentValue: number, investedValue: number }[]>([]);
 
   const addBalance = async () => {
     const amount = depositAmount;
     if (amount === 0) {
-      alert("Please Add Atleast Minimum $100");
+      addToast({
+        title: "Invalid Amount",
+        description: "Please add at least ₹100",
+        color: "warning",
+      });
       return;
     }
 
     const token = localStorage.getItem("token");
     const username = localStorage.getItem("username");
 
-    if (!token) {
-      alert("please login first");
+    if (!token || !username) {
+      addToast({
+        title: "Authentication Required",
+        description: "Please login first to add balance",
+        color: "danger",
+      });
       return;
     }
 
-    if (!username) {
-      alert("please login first");
-      return;
-    }
+    try {
+      const response = await fetch('http://localhost:3000/api/addBalance', {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "token": token,
+        },
+        body: JSON.stringify({ amount: depositAmount, username: username })
+      });
 
-    const response = await fetch('http://localhost:3000/api/addBalance', {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "token": token,
-      },
-      body: JSON.stringify({ amount: depositAmount, username: username })
-    })
-
-    if (response.ok) {
-      alert("Balance added Successfully");
+      if (response.ok) {
+        addToast({
+          title: "Deposit Successful",
+          description: `₹${depositAmount} has been added to your wallet`,
+          color: "success",
+        });
+        setCurrentBalance(prev => prev + depositAmount);
+        setDepositAmount(0);
+      } else {
+        addToast({
+          title: "Deposit Failed",
+          description: "Unable to add balance. Please try again.",
+          color: "danger",
+        });
+      }
+    } catch (error) {
+      addToast({
+        title: "Error",
+        description: "Network error. Please check your connection.",
+        color: "danger",
+      });
     }
-    else {
-      alert("Error !!!");
-    }
-
   }
 
   const withdrawBalance = async () => {
     const amount = withdrawAmount;
     if (amount === 0) {
-      alert("Please Add Atleast Minimum $1000");
+      addToast({
+        title: "Invalid Amount",
+        description: "Please enter a valid withdrawal amount",
+        color: "warning",
+      });
+      return;
+    }
+
+    if (amount > currentBalance) {
+      addToast({
+        title: "Insufficient Balance",
+        description: "You don't have enough balance to withdraw this amount",
+        color: "danger",
+      });
       return;
     }
 
     const token = localStorage.getItem("token");
     const username = localStorage.getItem("username");
 
-    if (!token) {
-      alert("please login first");
+    if (!token || !username) {
+      addToast({
+        title: "Authentication Required",
+        description: "Please login first to withdraw balance",
+        color: "danger",
+      });
       return;
     }
 
-    if (!username) {
-      alert("please login first");
-      return;
-    }
+    try {
+      const response = await fetch('http://localhost:3000/api/withdrawBalance', {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "token": token,
+        },
+        body: JSON.stringify({ amount: withdrawAmount, username: username })
+      });
 
-    const response = await fetch('http://localhost:3000/api/withdrawBalance', {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "token": token,
-      },
-      body: JSON.stringify({ amount: withdrawAmount, username: username })
-    })
-
-    if (response.ok) {
-      alert("Balance withdrawn Successfully");
+      if (response.ok) {
+        addToast({
+          title: "Withdrawal Successful",
+          description: `₹${withdrawAmount} has been withdrawn from your wallet`,
+          color: "success",
+        });
+        setCurrentBalance(prev => prev - withdrawAmount);
+        setWithdrawAmount(0);
+      } else {
+        addToast({
+          title: "Withdrawal Failed",
+          description: "Unable to withdraw balance. Please try again.",
+          color: "danger",
+        });
+      }
+    } catch (error) {
+      addToast({
+        title: "Error",
+        description: "Network error. Please check your connection.",
+        color: "danger",
+      });
     }
-    else {
-      alert("Error !!!");
-    }
-
   }
 
   // Fetch user's stock holdings
@@ -158,6 +210,10 @@ export function Holdings() {
     }, 0);
   };
 
+  const handleStockClick = (symbol: string) => {
+    navigate(`/viewStock/${symbol}`);
+  };
+
   useEffect(() => {
     const username = localStorage.getItem("username");
 
@@ -197,6 +253,23 @@ export function Holdings() {
     return () => clearInterval(interval);
   }, []);
 
+  // Update portfolio history every time data changes (keeps last 30 mins)
+  useEffect(() => {
+    if (userStocks.length === 0 || masterStocks.length === 0) return;
+
+    const currentValue = calculateCurrentValue();
+    const investedValue = calculateInvestedValue();
+    const now = new Date();
+    const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
+
+    setPortfolioHistory(prev => {
+      // Filter out entries older than 30 minutes
+      const filtered = prev.filter(entry => entry.time > thirtyMinutesAgo);
+      // Add new entry
+      return [...filtered, { time: now, currentValue, investedValue }];
+    });
+  }, [masterStocks]);
+
   useEffect(() => {
     if (!chartContainer.current) return;
 
@@ -205,51 +278,99 @@ export function Holdings() {
       chartInstance.current.destroy();
     }
 
+    // Use portfolio history for chart data
+    const labels = portfolioHistory.map(entry =>
+      entry.time.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+    );
+    const currentValues = portfolioHistory.map(entry => entry.currentValue);
+    const investedValues = portfolioHistory.map(entry => entry.investedValue);
+
+    // Get latest values for color determination
+    const latestCurrent = currentValues[currentValues.length - 1] || 0;
+    const latestInvested = investedValues[investedValues.length - 1] || 0;
+    const isProfit = latestCurrent >= latestInvested;
+
     chartInstance.current = new Chart(chartContainer.current, {
       type: "line",
       data: {
-        labels: ["2025-08-01", "2025-08-02", "2025-08-03"],
+        labels: labels.length > 0 ? labels : ['--'],
         datasets: [
           {
-            label: "Current",
-            data: [150, 150, 150],
-            borderColor: "#2962FF",
-            backgroundColor: "rgba(41, 98, 255, 0.2)",
+            label: "Current Value",
+            data: currentValues.length > 0 ? currentValues : [0],
+            borderColor: isProfit ? "#22c55e" : "#ef4444",
+            backgroundColor: isProfit ? "rgba(34, 197, 94, 0.15)" : "rgba(239, 68, 68, 0.15)",
             borderWidth: 2,
-            tension: 0.3, // smooth curve
-            fill: false,
+            tension: 0.3,
+            fill: true,
+            pointBackgroundColor: isProfit ? "#22c55e" : "#ef4444",
+            pointBorderColor: "#fff",
+            pointBorderWidth: 1,
+            pointRadius: 3,
+            pointHoverRadius: 5,
           },
           {
-            label: "Invested",
-            data: [150, 167, 148],
-            borderColor: "#3d4a6e1d",
-            backgroundColor: "rgba(41, 98, 255, 0.2)",
+            label: "Invested Value",
+            data: investedValues.length > 0 ? investedValues : [0],
+            borderColor: "#6b7280",
+            backgroundColor: "transparent",
             borderWidth: 2,
-            tension: 0.3, // smooth curve
+            borderDash: [5, 5],
+            tension: 0,
             fill: false,
+            pointRadius: 0,
           }
         ],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: {
+          duration: 300,
+        },
         plugins: {
           legend: {
             labels: {
-              color: "#000",
+              color: "#374151",
+              font: {
+                weight: 'bold',
+              },
             },
           },
+          tooltip: {
+            callbacks: {
+              label: function (context) {
+                return `${context.dataset.label}: ₹${context.parsed.y.toFixed(2)}`;
+              }
+            }
+          }
         },
         scales: {
           x: {
-            ticks: { color: "#000" },
-            grid: { color: "#eee" },
-            display: false
+            ticks: {
+              color: "#6b7280",
+              maxRotation: 45,
+              minRotation: 0,
+              maxTicksLimit: 8,
+            },
+            grid: { color: "#f3f4f6" },
+            display: true,
+            title: {
+              display: true,
+              text: 'Last 30 Minutes',
+              color: '#9ca3af',
+            }
           },
           y: {
-            ticks: { color: "#000" },
-            grid: { color: "#eee" },
-            display: false
+            ticks: {
+              color: "#6b7280",
+              callback: function (value) {
+                return '₹' + Number(value).toLocaleString('en-IN');
+              }
+            },
+            grid: { color: "#f3f4f6" },
+            display: true,
+            beginAtZero: false,
           },
         },
       },
@@ -260,17 +381,14 @@ export function Holdings() {
         chartInstance.current.destroy();
       }
     };
-  }, []);
+  }, [portfolioHistory]);
 
   return (
     <div className="flex flex-col items-center justify-center">
-      <div className="w-[80vw] max-w-[80vw] flex flex-row ">
+      <NavBar />
+      <div className="w-[80vw] max-w-[80vw] flex flex-row min-h-screen">
         <div className="w-full mt-20 ">
-          <div>
-            <NavBar />
-          </div>
-
-          <motion.div className="w-[50%] pt-15" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
+          <motion.div className="w-[50%] pt-15 " initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
             <h2 className="pb-10 font-bold text-[40px]">Holdings</h2>
             <div className="flex justify-between pb-10">
               <div className="flex flex-col gap-3">
@@ -304,7 +422,7 @@ export function Holdings() {
                   const pnlColor = pnl >= 0 ? 'text-green-600' : 'text-red-600';
 
                   return (
-                    <div key={stock.id} className="flex flex-row gap-3 w-full justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <div key={stock.id} className="flex flex-row gap-3 w-full justify-between p-4 bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md hover:border-gray-200 hover:-translate-y-0.5 transition-all cursor-pointer" onClick={() => handleStockClick(stock.symbol)}>
                       <div className="flex flex-col">
                         <span className="font-bold">{stock.name}</span>
                         <span className="font-medium text-sm text-[#999999]">{stock.symbol}</span>
@@ -345,7 +463,7 @@ export function Holdings() {
           <motion.div className="h-[50%] ">
             <h1 className="font-bold text-[25px]">Wallet</h1>
             <motion.div className="pb-2">
-              <div><h2 className="font-bold text-[18px]">Current Balance:<span className="text-[#999999] font-bold">{currentBalance}</span></h2></div>
+              <div><h2 className="font-bold text-[18px]">Current Balance:<span className="text-[#999999] font-bold">₹{Math.round(currentBalance)}</span></h2></div>
             </motion.div>
             <motion.div className="flex gap-7 pb-5 ">
               <Input placeholder="Enter Amount" name="amount" onChange={(e) => setDepositAmount(Number(e.target.value))
@@ -359,6 +477,7 @@ export function Holdings() {
           </motion.div>
         </motion.div>
       </div>
+      <Footer />
     </div>
   );
 }

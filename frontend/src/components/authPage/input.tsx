@@ -2,17 +2,26 @@ type SvgIconType = React.FunctionComponent<React.SVGProps<SVGSVGElement>>;
 
 interface InputProps {
     placeholder: string,
-    value?:string,
-    onChange ?: (e: React.ChangeEvent<HTMLInputElement>) => void,
-    Icon ?: SvgIconType,
-    name:string, 
+    value?: string,
+    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void,
+    Icon?: SvgIconType,
+    name: string,
+    type?: string,
+    className?: string,
 }
 
-export function Input ({placeholder, value, onChange , name}: InputProps) {
+export function Input({ placeholder, value, onChange, name, type = "text", className }: InputProps) {
     return (
-        <div className="max-w-[40%] w-[40%] pt-3">
-            <div className="w-full pr-2 h-[19px]">
-                <input placeholder={placeholder} type="text" id={name} className="text-[#333333] font-semibold pl-3" value={value} onChange={onChange} />
-            </div>
-        </div>    )
+        <div className={`w-full ${className || ""}`}>
+            <input
+                placeholder={placeholder}
+                type={type}
+                id={name}
+                name={name}
+                className="w-full text-[#333333] font-medium hover:border-gray-400 focus:border-black focus:ring-2 focus:ring-black/5"
+                value={value}
+                onChange={onChange}
+            />
+        </div>
+    )
 }
