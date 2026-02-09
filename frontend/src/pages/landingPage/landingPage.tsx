@@ -5,6 +5,7 @@ import { HeroSection } from "../../components/landingPage/heroSection";
 import { StepsSection } from "../../components/landingPage/stepsSection";
 import { Footer } from "../../components/footer";
 import { Testimonials } from "../../components/landingPage/testimonials";
+import { CTASection } from "../../components/landingPage/ctaSection";
 
 export const LandingPage = () => {
   return (
@@ -14,6 +15,7 @@ export const LandingPage = () => {
       <InfoBlocks />
       <StepsSection />
       <Testimonials />
+      <CTASection />
       <Footer />
     </div>
   );

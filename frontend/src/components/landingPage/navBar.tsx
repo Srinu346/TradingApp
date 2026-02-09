@@ -19,29 +19,60 @@ export const NavBar = () => {
   }, []);
 
   return (
-    <div className={`flex flex-row justify-between items-center p-5 w-[80vw] max-w-[80vw] mx-auto fixed top-0 left-0 right-0 z-1000 ${isScrolled ? "bg-white/80 backdrop-blur-lg shadow-md rounded-xl transition-all duration-200" : "bg-transparent"}`}>
-      <div className="flex flex-row gap-10 items-center">
-        <span className="text-lg font-bold text-black cursor-pointer" onClick={() => navigate('/')}>TradeX</span>
-        <motion.div className="flex flex-row gap-6 items-center">
-          <a href="#services" className="text-gray-400 font-normal cursor-pointer hover:text-black transition-colors">
+    <motion.nav
+      initial={{ y: -20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      className={`flex flex-row justify-between items-center px-8 py-4 w-[85vw] max-w-6xl mx-auto fixed top-4 left-0 right-0 z-[1000] rounded-2xl transition-all duration-300 ${isScrolled
+          ? "bg-white/90 backdrop-blur-xl shadow-lg shadow-black/5 border border-gray-100"
+          : "bg-transparent"
+        }`}
+    >
+      <div className="flex flex-row gap-12 items-center">
+        <span
+          className="text-xl font-bold text-black cursor-pointer tracking-tight"
+          onClick={() => navigate('/')}
+        >
+          TradeX
+        </span>
+        <div className="flex flex-row gap-8 items-center">
+          <a
+            href="#services"
+            className="text-gray-500 font-medium text-sm cursor-pointer hover:text-black transition-colors relative group"
+          >
             Services
+            <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-black transition-all duration-300 group-hover:w-full" />
           </a>
-          <a href="#features" className="text-gray-400 font-normal cursor-pointer hover:text-black transition-colors">
+          <a
+            href="#features"
+            className="text-gray-500 font-medium text-sm cursor-pointer hover:text-black transition-colors relative group"
+          >
             Features
+            <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-black transition-all duration-300 group-hover:w-full" />
           </a>
-          <a href="#testimonials" className="text-gray-400 font-normal cursor-pointer hover:text-black transition-colors">
+          <a
+            href="#testimonials"
+            className="text-gray-500 font-medium text-sm cursor-pointer hover:text-black transition-colors relative group"
+          >
             Testimonials
+            <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-black transition-all duration-300 group-hover:w-full" />
           </a>
-        </motion.div>
+        </div>
       </div>
-      <div>
+      <div className="flex gap-3 items-center">
+        <button
+          onClick={() => navigate('/login')}
+          className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-black transition-colors"
+        >
+          Sign In
+        </button>
         <Button
           label="Get Started"
           onClick={() => navigate('/register')}
           type="black"
-          className="w-[110px] h-[36px] text-white text-sm font-bold bg-black rounded-lg hover:bg-gray-800 transition-colors"
+          className="px-5 py-2.5 text-sm font-semibold"
         />
       </div>
-    </div>
+    </motion.nav>
   );
 };
