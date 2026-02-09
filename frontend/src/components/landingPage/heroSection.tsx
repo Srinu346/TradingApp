@@ -14,19 +14,6 @@ export const HeroSection = () => {
                 <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-gradient-to-r from-emerald-200/20 to-teal-200/20 rounded-full blur-3xl" />
             </div>
 
-            {/* Trust Badge */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="mb-8"
-            >
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/50 rounded-full">
-                    <Sparkles size={16} className="text-amber-500" />
-                    <span className="text-sm font-medium text-amber-700">₹10,00,000 Virtual Credits • Risk-Free Trading</span>
-                </div>
-            </motion.div>
-
             {/* Main Headline */}
             <motion.div
                 initial={{ opacity: 0, y: 50 }}
